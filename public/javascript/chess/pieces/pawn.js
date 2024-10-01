@@ -1,44 +1,48 @@
 var Pawn = function(config){
-    this.type = 'pawn';
-    this.constructor(config);
+  this.type = 'pawn';
+  this.constructor(config);
 };
-
 
 Pawn.prototype = new Piece({});
 
-Pawn.prototype.moveTo = function(cell) {
-  console.log(this.position)
-    const currentPosition = this.position;
-    console.log(cell)
-    const newRow = cell.row;
-    const newCol = cell.col;
-    
-    if (!this.isValidMove(currentPosition, newRow, newCol)) {
-      console.warn("Invalid move for pawn");
-      return;
-    }
-    this.position = newCol + newRow;
-    this.render();
-  };
+Pawn.prototype.isValidPosition = function(targetPosition){
+  //Convert current position to row and column
+  let currentCol = this.position.charAt(0);
+  let currentRow = parseInt(this.position.charAt(1));
   
-  Pawn.prototype.isValidMove = function(currentPosition, newRow, newCol) {
-    const currentRow = parseInt(currentPosition.slice(1));
-    const currentCol = currentPosition.charAt(0);
-    if (this.color === 'white' && newRow > currentRow) {
-      if (newRow - currentRow === 1 && newCol === currentCol) {
-        return true;
+  //Calculate the allowed move distance based on pawn color
+  let moveDistance = this.color === 'white' ? -1 : 1;
+  let initialRow = this.color === 'white' ? 7 : 2;
+  let targetPiece = this.board.getPieceAt(targetPosition);
+
+  //Check if move is valid
+  if(!targetPiece && targetPosition.col === currentCol){
+      //Moving Straight
+      if(targetPosition.row === (currentRow+moveDistance).toString()){
+          //Regular one square move
+          return true;
+      } else if(currentRow === initialRow && (targetPosition.row === (currentRow + 2*moveDistance).toString())){
+          //Initial two-square move
+          return true;
       }
-      if (currentRow === 2 && newRow - currentRow === 2 && newCol === currentCol) {
-        return true;
+  } else if (Math.abs(targetPosition.col.charCodeAt(0) - currentCol.charCodeAt(0)) === 1 &&
+          targetPosition.row === (currentRow + moveDistance).toString()) {
+      // Check for regular diagonal capture
+      if (targetPiece && targetPiece.color !== this.color) {
+          targetPiece.kill(targetPiece);
+          return true;
       }
-    } else if (this.color === 'black' && newRow < currentRow) {
-      
-      if (newRow - currentRow === -1 && newCol === currentCol) {
-        return true;
-      }
-      if (currentRow === 7 && newRow - currentRow === -2 && newCol === currentCol) {
-        return true;
-      }
-    }
-    return false;
-  };
+  }
+
+  // If none of the above conditions are met, the move is invalid
+  console.warn("Invalid move for pawn");
+  return false;
+}
+
+Pawn.prototype.moveTo = function(targetPosition){
+  if(this.isValidPosition(targetPosition)){
+      this.position = targetPosition.col + targetPosition.row;
+      this.render();
+      this.board.switchTurn();
+  }
+};
